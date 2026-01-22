@@ -1,0 +1,102 @@
+---
+title: "Golub experiment"
+output: html_document
+date: "2026-01-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Résumé
+
+L'**analyse de Golub (1999)** est un jalon historique en bioinformatique et en oncologie génomique. Publiée dans *Science*, cette étude a prouvé pour la première fois que l'on pouvait classer des cancers sans connaissance biologique préalable, uniquement en utilisant le **profil d'expression des gènes** (transcriptomique).
+## Contexte
+
+
+## 1. Le Problème : AML vs ALL
+
+Avant cette étude, la distinction entre les deux types de leucémies aiguës était basée sur la morphologie des cellules, ce qui est parfois subjectif et sujet à erreur :
+
+* **ALL** (Acute Lymphoblastic Leukemia) : Leucémie aiguë lymphoblastique.
+* **AML** (Acute Myeloid Leukemia) : Leucémie aiguë myéloïde.
+
+L'objectif de Golub était de savoir si les puces à ADN (microarrays) pouvaient automatiser ce diagnostic.
+
+
+## 2. La Méthodologie
+
+L'équipe a utilisé des échantillons de moelle osseuse (38 pour l'entraînement, 34 pour le test) et mesuré l'expression de **6 817 gènes**. L'analyse s'est divisée en deux approches :
+
+### A. Découverte de classes (Clustering non supervisé)
+
+Ils ont utilisé des **cartes auto-organisatrices (Self-Organizing Maps - SOM)** pour voir si les données se regroupaient naturellement.
+
+* **Résultat :** Les algorithmes ont séparé spontanément les échantillons en deux groupes correspondant presque parfaitement à ALL et AML, prouvant que la signature moléculaire est distincte.
+
+### B. Prédiction de classes (Apprentissage supervisé)
+
+Ils ont cherché à identifier les "gènes informatifs" (les plus discriminants).
+
+* **Sélection des gènes :** Ils ont choisi les 50 gènes présentant la plus forte corrélation avec la distinction ALL/AML.
+* **Weighted Voting (Vote pondéré) :** Un algorithme a été créé pour que chaque gène "vote" pour une classe. La force du vote dépend de l'écart d'expression par rapport à la moyenne.
+
+
+## 3. Résultats et Impact
+
+* **Précision :** Le modèle a classé correctement 36 des 38 échantillons de l'ensemble d'entraînement et a été validé avec succès sur l'ensemble de test indépendant.
+* **Signature moléculaire :** L'étude a identifié des gènes clés comme la *Myéloperoxydase* (marqueur de l'AML).
+* **Révolution médicale :** Cela a ouvert la voie à la **médecine de précision**. On ne traite plus seulement un organe, mais une signature génétique.
+
+
+## Lecture des mesures
+
+```{r}
+load("00_data/leukemia_data_Golub99_3051.rda")
+X <- golub_train_3051
+dim( X )
+Y <- golub_train_response
+length( Y )
+```
+
+Chargement des fonctions.
+
+```{r}
+source( "1_backend.R" )
+```
+
+Apercu des donnees.
+
+```{r}
+annot <- data.frame( group = Y, row.names = rownames( X ) )
+plot_heatmap( X, annotation_row = annot )
+boxplot( 
+  t(X), xlab = "Echantillon", ylab = "Mesure normalisee", 
+  main = "Boxplot des echantillons" )
+```
+
+
+## Balayage par t-test et selection
+
+Histogramme des p-values.
+
+```{r}
+X_pvalue <- calc_pvalue( X, Y )
+hist( X_pvalue, breaks = 20 )
+```
+
+
+Selection des variables les plus discrimantes.
+
+```{r}
+oo <- order( X_pvalue )[1:15]
+toptable <- data.frame(
+  var = colnames(X)[oo],
+  p_value = X_pvalue[oo],
+  p_value_bonferroni = X_pvalue[oo] * ncol( X )
+)
+knitr::kable( toptable )
+# histogramme avec correction de Bonferroni
+hist( pmin( X_pvalue * ncol( X ), 1 ), breaks = 20,
+      main = "Bonferroni correction")
+```
