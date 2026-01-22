@@ -65,6 +65,10 @@ X_diff_1 <- generate_data( diff = 1 )
 X_diff_1[11:13,1]
 plot_hist( X_diff_1 )
 
+X_pvalue_1 <- calc_pvalue( X_diff_1 )
+hist( X_pvalue_1 )
+
+
 
 # difference 0
 X_diff_0 <- generate_data( diff = 0 )
@@ -72,7 +76,8 @@ X_diff_0 <- generate_data( diff = 0 )
 X_diff_0[11:13,1]
 plot_hist( X_diff_0 )
 
-
+X_pvalue_0 <- calc_pvalue( X_diff_0 )
+hist( X_pvalue_0 )
 
 # devel
 
