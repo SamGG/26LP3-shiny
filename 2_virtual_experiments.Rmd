@@ -1,0 +1,69 @@
+---
+title: "Virtual experiments"
+output: html_document
+date: "2026-01-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Contexte
+
+On etudie deux groupes de patients. Le 1er groupe de patients qui ne repondent pas au traitement. Le 2nd groupe des patients  repondent au traitement. La technologie moleculaire que l'on utilise permet de mesurer un grand nombre de variables sur chaque individu. A la fin de l'etude, les mesures sont dans une matrice dont les lignes sont les individus et les colonnes les variables.
+
+L'objectif est d'identifier les variables qui correlees avec la reponse au traitement. Pour identifier les variables, on realise un test de Student sur chaque variable. La p-value sera le critere d'identification. Est-ce que ce critere permet de trouver les variables liees a la reponse? Comment varie-t-il en fonction de l'intensite de la variation des variables (difference)? Comment varie-t-il en fonction de la proportion de variables montrant une difference? 
+
+
+## Interet d'utiliser le T test.
+
+On fait varier la difference de moyennes des variables entre les 2 groupes.
+
+Chargement des fonctions.
+
+```{r}
+source( "1_backend.R" )
+```
+
+### Difference = 0
+
+Quelle est distribution des p-values quand il y a une difference de 1 unite ?
+
+```{r}
+# difference  = 0
+X_diff_0 <- generate_data( diff = 0 )
+plot_hist( X_diff_0 )
+X_pvalue_0 <- calc_pvalue( X_diff_0 )
+hist( X_pvalue_0, 20 )
+```
+
+### Difference = 1
+
+Quelle est distribution des p-values quand il y a une difference de 1 unite ?
+
+```{r}
+# difference = 1
+X_diff_1 <- generate_data( diff = 1 )
+plot_hist( X_diff_1 )
+X_pvalue_1 <- calc_pvalue( X_diff_1 )
+hist( X_pvalue_1, breaks = 20 )
+```
+
+
+## Influence de la proportion de variable.
+
+On fait varier la difference de moyenne des variables entre les 2 groupes.
+
+```{r}
+for (p in c( 0.20, 0.10, 0.05, 0.00 )) {
+  message( "\n\nProportion : ", p)
+  X_diff <- generate_data( diff = 1, prop = p )
+  plot_heatmap( X_diff )
+  plot_hist( X_diff )
+  title( sub = paste( "prop = ", p) )
+  X_pvalue <- calc_pvalue( X_diff )
+  hist( X_pvalue, breaks = 20 )
+  title( sub = paste( "prop = ", p) )
+}
+```
+
