@@ -1,96 +1,141 @@
+#' Generate a matrix of measurement
+#'
+#' @param diff difference between the average of two groups
+#' @param n_indiv number of individuals per group
+#' @param n_var number of variables
+#' @param prop proportion of variables that have a difference
+#' @param seed seed for random generator
+#'
+#' @returns a matrix
+#' @export
+#'
+#' @examples
 generate_data <- function(
     diff = 1,
-    n = 10,
-    s = 1000
+    n_indiv = 10,
+    n_var = 1000,
+    prop = 1,
+    seed = 42
 ) {
   # synchro
-  set.seed(42)
+  set.seed(seed)
   # simulation 1st group
-  gr1 <- rnorm( n * s )
+  gr1 <- matrix( rnorm( n_indiv * n_var ), nrow = n_indiv, byrow = TRUE)
+  rownames( gr1 ) <- sprintf( "g1%02d", 1:n_indiv )
   # simulation 2nd group
-  gr2 <- rnorm( n * s, mean = diff )
+  gr2 <- matrix( rnorm( n_indiv * n_var ), nrow = n_indiv, byrow = TRUE)
+  # add the difference in a proportion of variables
+  n_var_diff <- floor( n_var * prop )
+  gr2[ , 1:n_var_diff ] <- gr2[ , 1:n_var_diff ] + diff
+  rownames( gr2 ) <- sprintf( "g2%02d", 1:n_indiv )
   # insert values into a matrix 2D
-  res <- matrix( c( gr1, gr2 ), nrow = 2 * n, ncol = s, byrow = TRUE)
+  res <- rbind( gr1, gr2 )
+  colnames( res ) <- sprintf( "v%04d", 1:n_var )
   return(res)
 }
 
-plot_hist <- function(
-    mat
+#' Plot a heatmap revealing the data inside a matrix
+#'
+#' @param mat a matrix of measurements, individuals as rows, variables as
+#'   columns
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+plot_heatmap <- function(
+    mat,
+    ...
 ) {
-  # compute n
-  n <- nrow( mat ) / 2
+  pheatmap::pheatmap(
+    mat, show_colnames = FALSE,
+    cluster_rows = FALSE, cluster_cols = FALSE,
+    ...
+  )
+}
+
+# Debug
+# X <- generate_data()
+# plot_heatmap( X )
+
+# Debug
+# X <- generate_data( prop = 0.1 )
+# plot_heatmap( X )
+
+
+#' Plot the histogram of mean values per variable per group
+#'
+#' @param mat
+#' @param breaks
+#'
+#' @returns
+#' @export
+#'
+#' @examples
+plot_hist <- function(
+    mat,
+    bin_width = 0.1,
+    Y
+) {
+  if ( missing( Y ) ) {
+    n <- nrow( mat ) / 2
+    Y <- rep( c( "G1", "G2" ), each = n)
+  }
+  Y <- factor( Y )
+  # indices of group 1 & 2
+  indices_gr1 <- which( Y == levels( Y )[ 1 ])
+  indices_gr2 <- which( Y == levels( Y )[ 2 ])
   # calculate mean gr1
-  mat1 <- mat[ 1:n, ]
+  mat1 <- mat[ indices_gr1, ]
   mean1 <- apply( mat1, 2, mean )
   # calculate mean gr2
-  mat2 <- mat[ 1:n + n, ]
+  mat2 <- mat[ indices_gr2, ]
   mean2 <- apply( mat2, 2, mean )
   # determine limits
   xlimits <- range( c( mean1, mean2 ) )
+  xlimits[1] <- floor( xlimits[1] * 10 - 1) / 10
+  xlimits[2] <- ceiling( xlimits[2] * 10 + 1) / 10
+  breaks <- seq( xlimits[1] + 1e-6, xlimits[2] - 1e-6, bin_width )
   # plot 1st histogram
-  hist( mean1, col = "lightblue", xlim = xlimits )
+  hist( mean1, col = "#00CCBB33", breaks = breaks )
   # plot 2nd histogram
-  hist( mean2, add = TRUE, col = "#FFAAAA88")
+  hist( mean2, add = TRUE, col = "#CC00BB33", breaks = breaks )
 }
 
+# Debug
+# plot_hist( X )
 
 
+#' Calculate p-value for each variable of the measurement matrix
+#'
+#' @param X
+#' @param Y
+#'
+#' @returns
+#' @export
+#'
+#' @examples
 calc_pvalue <- function(
-    X, # matrix of variables
-    Y # response
+    X,
+    Y
 ) {
-  # debug
-  # X <- tmp
-  #
-  # indices_gr1
-  # indices_gr2
+  if ( missing( Y ) ) {
+    Y <- rep( c( "G1", "G2" ), each = nrow( X ) / 2)
+  }
+  Y <- factor( Y )
+  # indices of group 1 & 2
+  indices_gr1 <- which( Y == levels( Y )[ 1 ])
+  indices_gr2 <- which( Y == levels( Y )[ 2 ])
   # calculate t.test de la 15e variable = 15e colonne
-  tt <- t.test( X[ 1:n, 15 ], X[ 1:n + n, 15] )
-  tt$p.value
-
+  # tt <- t.test( X[ 1:n, 15 ], X[ 1:n + n, 15] )
+  # tt$p.value
+  # apply to each column
   res <- apply( X, 2, function( vec_col ) {
-    tt <- t.test( vec_col[ 1:n ], vec_col[ 1:n + n] )
+    tt <- t.test( vec_col[ indices_gr1 ], vec_col[ indices_gr2 ] )
     tt$p.value
   })
   return( res )
 }
 
-
-
-# experiences virtuelles
-
-# difference 1
-X_diff_1 <- generate_data( diff = 1 )
-# tt le monde doit avoir les memes valeurs
-X_diff_1[11:13,1]
-plot_hist( X_diff_1 )
-
-X_pvalue_1 <- calc_pvalue( X_diff_1 )
-hist( X_pvalue_1 )
-
-
-
-# difference 0
-X_diff_0 <- generate_data( diff = 0 )
-# tt le monde doit avoir les memes valeurs
-X_diff_0[11:13,1]
-plot_hist( X_diff_0 )
-
-X_pvalue_0 <- calc_pvalue( X_diff_0 )
-hist( X_pvalue_0 )
-
-# devel
-
-tmp <- generate_data()
-# tt le monde doit avoir les memes valeurs
-tmp[1:3,1]
-
-plot_hist( tmp )
-
-pheatmap::pheatmap(X, cluster_rows = FALSE, cluster_cols = FALSE)
-
-n <- 10
-X <- tmp
-
-
-
+# Debug
+# X_pvalue <- calc_pvalue( X )
