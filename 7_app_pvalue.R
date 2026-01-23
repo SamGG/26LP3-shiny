@@ -10,12 +10,12 @@
 library(shiny)
 
 
-# Business layer ====
+# Business Layer ====
 
 source( "1_backend.R" )
 
 
-# UI layer ====
+# UI Layer ====
 
 ui <- fluidPage(
 
@@ -39,7 +39,7 @@ ui <- fluidPage(
                   min = 0, max = 1, value = 1.0),
       selectInput("binwidth",
                   "Bin width (p-value):",
-                  choices = c(0.10, 0.05, 0.02, 0.01), selected = 0.1)
+                  choices = c(0.10, 0.05, 0.02, 0.01, 0.001, 0.005), selected = 0.1)
     ),
 
     # Show plots of the generated distribution
@@ -52,7 +52,7 @@ ui <- fluidPage(
 )
 
 
-# server layer ====
+# Server Layer ====
 
 server <- function(input, output) {
 
