@@ -11,10 +11,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Résumé
 
 L'**analyse de Golub (1999)** est un jalon historique en bioinformatique et en oncologie génomique. Publiée dans *Science*, cette étude a prouvé pour la première fois que l'on pouvait classer des cancers sans connaissance biologique préalable, uniquement en utilisant le **profil d'expression des gènes** (transcriptomique).
+
+
 ## Contexte
 
 
-## 1. Le Problème : AML vs ALL
+### 1. Le Problème : AML vs ALL
 
 Avant cette étude, la distinction entre les deux types de leucémies aiguës était basée sur la morphologie des cellules, ce qui est parfois subjectif et sujet à erreur :
 
@@ -24,17 +26,17 @@ Avant cette étude, la distinction entre les deux types de leucémies aiguës é
 L'objectif de Golub était de savoir si les puces à ADN (microarrays) pouvaient automatiser ce diagnostic.
 
 
-## 2. La Méthodologie
+### 2. La Méthodologie
 
 L'équipe a utilisé des échantillons de moelle osseuse (38 pour l'entraînement, 34 pour le test) et mesuré l'expression de **6 817 gènes**. L'analyse s'est divisée en deux approches :
 
-### A. Découverte de classes (Clustering non supervisé)
+#### A. Découverte de classes (Clustering non supervisé)
 
 Ils ont utilisé des **cartes auto-organisatrices (Self-Organizing Maps - SOM)** pour voir si les données se regroupaient naturellement.
 
 * **Résultat :** Les algorithmes ont séparé spontanément les échantillons en deux groupes correspondant presque parfaitement à ALL et AML, prouvant que la signature moléculaire est distincte.
 
-### B. Prédiction de classes (Apprentissage supervisé)
+#### B. Prédiction de classes (Apprentissage supervisé)
 
 Ils ont cherché à identifier les "gènes informatifs" (les plus discriminants).
 
@@ -42,14 +44,14 @@ Ils ont cherché à identifier les "gènes informatifs" (les plus discriminants)
 * **Weighted Voting (Vote pondéré) :** Un algorithme a été créé pour que chaque gène "vote" pour une classe. La force du vote dépend de l'écart d'expression par rapport à la moyenne.
 
 
-## 3. Résultats et Impact
+### 3. Résultats et Impact
 
 * **Précision :** Le modèle a classé correctement 36 des 38 échantillons de l'ensemble d'entraînement et a été validé avec succès sur l'ensemble de test indépendant.
 * **Signature moléculaire :** L'étude a identifié des gènes clés comme la *Myéloperoxydase* (marqueur de l'AML).
 * **Révolution médicale :** Cela a ouvert la voie à la **médecine de précision**. On ne traite plus seulement un organe, mais une signature génétique.
 
 
-## Lecture des mesures
+## Lecture des mesures et exploration
 
 ```{r}
 load("00_data/leukemia_data_Golub99_3051.rda")
@@ -100,3 +102,46 @@ knitr::kable( toptable )
 hist( pmin( X_pvalue * ncol( X ), 1 ), breaks = 20,
       main = "Bonferroni correction")
 ```
+
+
+## Clustering & Heatmap
+
+L'ensemble des mesures.
+
+```{r}
+pheatmap::pheatmap(
+  X, annotation_row = annot, show_colnames = FALSE, breaks = seq(-3, +3, len = 101)
+)
+```
+
+Le top des mesures.
+
+```{r}
+pheatmap::pheatmap(
+  X[, oo], annotation_row = annot, show_colnames = FALSE, breaks = seq(-3, +3, len = 101)
+)
+```
+
+
+## Reduction de dimension
+
+```{r}
+cols <- c( "#00DAE0", "#FF9289" )
+opar <- par( no.readonly = TRUE )
+par( mfrow = c( 2, 2 ), mar = c( 1, 2, 2, 2) + 0.1, xaxt = "n", yaxt = "n")
+# install.packages("uwot")
+set.seed( 42 )
+xy <- uwot::umap( X )
+plot( xy, col = cols[Y], pch = 19, main = "UMAP", xlab = "", ylab = "" )
+
+xy <- prcomp(X)
+# biplot(xy, var.axes = F)
+plot(xy$x[,1:2], col = cols[Y], pch = 19, main = "PCA", xlab = "", ylab = "" )
+
+plot( cmdscale(dist(X)), col = cols[Y], pch = 19, main = "MDS", xlab = "", ylab = "" )
+
+par( opar )
+```
+
+
+
